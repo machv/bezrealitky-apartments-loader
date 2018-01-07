@@ -17,7 +17,8 @@ namespace BezRealitkyLoader
         static void Main(string[] args)
         {
             string outputDirectory = ".\\"; // current working directory
-            string[] districts = new string[] { "vinohrady", "smichov", "kosire", "strasnice", "nusle", "zizkov", "dejvice", "michle", "malesice", "mala-strana", "podoli", "vysehrad", "vysocany" };
+            string[] districts = new string[] { "vinohrady", "smichov", "kosire", "strasnice", "nusle", "zizkov", "dejvice", "michle", "malesice", "karlin",
+                "podoli", "vysehrad", "vysocany", "holesovice", "hloubetin", "jinonice", "kobylisy", "krc", "radlice", "stresovice", "vrsovice", "zabehlice" };
 
             LoadApartments(outputDirectory, districts).Wait();
         }
@@ -38,9 +39,7 @@ namespace BezRealitkyLoader
 
         private static void SaveResults(string outputDirectory, Dictionary<string, List<Apartment>> apartmentsByDistrict)
         {
-            string json = JsonConvert.SerializeObject(apartmentsByDistrict, Formatting.Indented);
-            File.WriteAllText(Path.Combine(outputDirectory, "RentalsByDistrict.json"), json);
-
+            // Generate flat structure
             List<Apartment> allApartments = new List<Apartment>();
             foreach (var district in apartmentsByDistrict)
             {
@@ -52,11 +51,22 @@ namespace BezRealitkyLoader
                 }
             }
 
-            string jsonFlat = JsonConvert.SerializeObject(allApartments, Formatting.Indented);
-            File.WriteAllText(Path.Combine(outputDirectory, "Rentals.json"), jsonFlat);
+            Console.WriteLine();
 
-            var csv = ServiceStack.Text.CsvSerializer.SerializeToCsv(allApartments);
-            File.WriteAllText(Path.Combine(outputDirectory, "Rentals.csv"), csv);
+            string rentalsByDistrictJson = JsonConvert.SerializeObject(apartmentsByDistrict, Formatting.Indented);
+            string rentalsByDistrictFile = Path.Combine(outputDirectory, "RentalsByDistrict.json");
+            File.WriteAllText(rentalsByDistrictFile, rentalsByDistrictJson);
+            Console.WriteLine("Rentals by district stored to {0}", rentalsByDistrictFile);
+
+            string rentalsFlatJson = JsonConvert.SerializeObject(allApartments, Formatting.Indented);
+            string rentalsFlatFile = Path.Combine(outputDirectory, "Rentals.json");
+            File.WriteAllText(rentalsFlatFile, rentalsFlatJson);
+            Console.WriteLine("All rentals stored to {0}", rentalsFlatFile);
+
+            string rentalsCsv = ServiceStack.Text.CsvSerializer.SerializeToCsv(allApartments);
+            string rentalsFile = Path.Combine(outputDirectory, "Rentals.csv");
+            File.WriteAllText(rentalsFile, rentalsCsv);
+            Console.WriteLine("All rentals stored to {0}", rentalsFlatFile);
         }
 
         private static async Task<List<Apartment>> LoadDistrict(string district)
