@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace BezRealitkyLoader
@@ -79,18 +80,31 @@ namespace BezRealitkyLoader
 
             List<string> additionalPages = new List<string>();
 
-            var paging = document.QuerySelectorAll("div.box-body a.btn-dark-grey");
+            var paging = document.QuerySelectorAll("ul.pagination a.page-link");
             if (paging != null && paging.Length > 0)
             {
-                foreach (var page in paging)
+                var lastPage = paging[paging.Length - 2];
+                int lastPageNumber = int.Parse(lastPage.TextContent);
+                string urlTemplate = Regex.Replace(lastPage.GetAttribute("href"), "=" + lastPage.TextContent + "$", "={0}");
+                if (lastPageNumber > 1)
                 {
-                    if (page.TextContent == "Další")
-                        continue;
-
-                    string pageUrl = page.GetAttribute("href");
-                    additionalPages.Add(pageUrl);
+                    for (int i = 2; i <= lastPageNumber; i++)
+                    {
+                        string pageUrl = string.Format(urlTemplate, i);
+                        additionalPages.Add(pageUrl);
+                    }
                 }
             }
+            //foreach (var page in paging)
+            //{
+            //    if (page.TextContent == "Další >")
+            //        continue;
+
+            //    string pageUrl = page.GetAttribute("href");
+            //    additionalPages.Add(pageUrl);
+            //}
+            //         }
+            //       }
 
             // from main page
             List<Apartment> apartments = ParseApartments(document, district);
@@ -114,19 +128,17 @@ namespace BezRealitkyLoader
         {
             List<Apartment> apartments = new List<Apartment>();
 
-            var ads = document.QuerySelectorAll("div.record div.details");
+            var ads = document.QuerySelectorAll("article.product");
             foreach (var ad in ads)
             {
                 var apartment = new Apartment();
                 apartment.District = disctrict;
 
-                var detailElement = ad.QuerySelector("h2.header a");
-                var icon = detailElement.QuerySelector("i");
-                detailElement.RemoveChild(icon);
+                var detailElement = ad.QuerySelector("h3 strong");
                 string street = detailElement.TextContent.Trim();
                 apartment.Address = street;
 
-                var priceElement = ad.QuerySelector("p.price");
+                var priceElement = ad.QuerySelector("strong.product__value");
                 string price = priceElement.TextContent;
                 if (price.Contains("+"))
                 {
@@ -135,19 +147,19 @@ namespace BezRealitkyLoader
                     apartment.Fees = decimal.Parse(prices[1].Replace("Kč", "").Replace(".", "").Trim());
                 }
 
-                var element = ad.QuerySelector("p.keys");
+                var element = ad.QuerySelector("p.product__note");
                 string[] metadata = element.TextContent.Replace("Pronájem bytu ", "").Split(',');
                 if (metadata.Length == 2)
                 {
-                    apartment.Disposition = metadata[0];
+                    apartment.Disposition = metadata[0].Trim();
                     apartment.Area = int.Parse(metadata[1].Replace(" m²", "").Trim());
                 }
 
-                element = ad.QuerySelector("p.description");
+                element = ad.QuerySelector("p.product__info-text");
                 apartment.Description = element.TextContent.Trim();
 
-                element = ad.QuerySelector("p.short-url");
-                apartment.DetailsLink = element.TextContent.Trim();
+                element = ad.QuerySelector("a.product__link");
+                apartment.DetailsLink = element.GetAttribute("href");
 
                 apartments.Add(apartment);
             }

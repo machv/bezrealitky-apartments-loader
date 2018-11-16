@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BezRealitkyLoader
+﻿namespace BezRealitkyLoader
 {
     public class Apartment
     {
@@ -16,5 +10,10 @@ namespace BezRealitkyLoader
         public string Disposition { get; set; }
         public decimal Area { get; set; }
         public string District { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("{0}, {1}, {2} m²", Address, Disposition, Area);
+        }
     }
 }
