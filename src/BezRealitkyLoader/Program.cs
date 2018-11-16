@@ -95,16 +95,6 @@ namespace BezRealitkyLoader
                     }
                 }
             }
-            //foreach (var page in paging)
-            //{
-            //    if (page.TextContent == "Další >")
-            //        continue;
-
-            //    string pageUrl = page.GetAttribute("href");
-            //    additionalPages.Add(pageUrl);
-            //}
-            //         }
-            //       }
 
             // from main page
             List<Apartment> apartments = ParseApartments(document, district);
