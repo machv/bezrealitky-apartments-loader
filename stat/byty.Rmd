@@ -1,43 +1,50 @@
 ---
-title: "Byty v Praze "
+title: "Byty v Praze"
 author: 
 date: "`r format(Sys.time(), '%d.%m.%Y')`"
 output: html_document
 ---
 
+```{r parameters, include=FALSE}
+
+# Byt Kosire 
+# predict_disposition <- c("1+kk", "1+1", "Garsoniéra")
+# predict_area <- 44
+# predict_district <- "kosire"
+
+# Byt Nusle
+predict_disposition <- c("3+kk", "3+1")
+predict_area <- 80
+predict_district <- "nusle"
+
+```
+
 
 ```{r transform_data, include=FALSE,}
-byty <- read.csv("rentals.csv")
+byty <- read.csv("Rentals.csv")
 # summary(byty)
 byty <- byty[byty$Rent != 0,]
 
 byty$plyn <- ifelse(regexpr('plyn', byty$Description) == -1, "neni_plyn", "je_plyn")
 byty$garaz <- ifelse(regexpr('garáž', byty$Description) == -1, "neni_garaz", "je_garaz")
 
-byty <- byty[byty$Disposition %in% c("1+kk", "1+1", "Garsoniéra"),]
-#byty$disp <- ifelse(byty$Disposition == "2+kk", "2k", "1k")
+byty <- byty[byty$Disposition %in% predict_disposition,]
 
-# aggregate(byty$Rent ~ byty$District, FUN = function(x) c(mean(x) ,sd(x), min(x), max(x), length(x)))
-
-
-#byty1 <- byty[byty$disp == "1k",]
-#byty2 <- byty[byty$disp == "2k",]
-
+print( aggregate(byty$Rent ~ byty$District, FUN = function(x) c(mean(x) ,sd(x), min(x), max(x), length(x))))
 
 ```
 
 
-Ze serveru [bezrealitky.cz](bezrealitky.cz) jsme vzali `r nrow(byty)` nabídek nájmů bytů dispozice 1+kk nebo 1+1 z `r length(levels((byty$District)))` pražských čtvrtí, ve kterých bychom byli ochotní bydlet (k `r format(Sys.time(), '%d.%m.%Y')`). Je vidět, že Košíře se drží na nižších cenách než ostatní čtvrti. 
+Ze serveru [bezrealitky.cz](bezrealitky.cz) jsme vzali `r nrow(byty)` nabídek nájmů bytů dispozice `r predict_disposition` z `r length(levels((byty$District)))` pražských čtvrtí, ve kterých bychom byli ochotní bydlet (k `r format(Sys.time(), '%d.%m.%Y')`). Je vidět, že `r predict_district` jsou zhruba průměr co se týče výše nájmu. 
 
 ```{r boxplot_1k_2k, include=TRUE, echo = FALSE, fig.width=15, fig.height=8}
 
-boxplot(byty$Rent ~ byty$District, col = "orangered4", main = "Byty 1+kk, 1+1", las = 2, ylab = "Cena [Kč]")
-#boxplot(byty2$Rent ~ byty2$District, col = "forestgreen", main = "Byty 2+kk")
+boxplot(byty$Rent ~ byty$District, col = "orangered4", main = paste0("Byty ", predict_disposition), las = 2, ylab = "Cena [Kč]")
 
 ```
 
 ```{r model, include = FALSE}
-byty <- byty[!(byty$District %in% c("vysehrad", "mala-strana")),]
+# byty <- byty[!(byty$District %in% c("vysehrad", "mala-strana")),]
 
 # interactions not significant
 # District and Area significant
@@ -46,14 +53,13 @@ model <- lm(Rent ~ District + Area, data = byty)
 anova(model, model0)
 summary(model)
 model$coefficients
-7912-2672+173*44
 
 #plot(predict(model))
-new <- data.frame(District = "kosire", Area = 44)
+new <- data.frame(District = predict_district, Area = predict_area)
 predict(model, newdata = new, interval = "confidence")
 
 ```
 
-Pro analýzu ceny nájmu použijeme lineární regresi, ve které je odezva nájem a nezávislé proměnné jsou plocha bytu a čtvrť města. Pro byt s rozlohou 44 m^2^ v Košířích dostaneme predikovanou cenu `r format(predict(model, newdata = new), nsmall = 2, digits = 2)` Kč s dolní mezí 95% intervalu spolehlivosti `r format(predict(model, newdata = new, interval = "confidence")[2], nsmall = 2, digits = 2)` Kč a horní mezí 95% intervalu spolehlivosti `r format(predict(model, newdata = new, interval = "confidence")[3], nsmall = 2, digits = 2)` Kč.
+Pro analýzu ceny nájmu použijeme lineární regresi, ve které je odezva nájem a nezávislé proměnné jsou plocha bytu a čtvrť města. Pro byt s rozlohou `r predict_area` m^2^ ve čtvrti `r predict_district` dostaneme predikovanou cenu `r format(predict(model, newdata = new), nsmall = 2, digits = 2)` Kč s dolní mezí 95% intervalu spolehlivosti `r format(predict(model, newdata = new, interval = "confidence")[2], nsmall = 2, digits = 2)` Kč a horní mezí 95% intervalu spolehlivosti `r format(predict(model, newdata = new, interval = "confidence")[3], nsmall = 2, digits = 2)` Kč.
 
 
