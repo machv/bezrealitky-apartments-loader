@@ -1,7 +1,10 @@
-﻿namespace BezRealitkyLoader
+﻿using System;
+
+namespace BezRealitkyLoader
 {
-    public class Apartment
+    public class Apartment : IEquatable<Apartment>
     {
+        public int Id { get; set; }
         public string Address { get; set; }
         public string DetailsLink { get; set; }
         public string Description { get; set; }
@@ -10,6 +13,15 @@
         public string Disposition { get; set; }
         public decimal Area { get; set; }
         public string District { get; set; }
+        public bool IsPremiumOffer { get; set; }
+        public Status Status { get; set; }
+        public DateTime FirstSeen { get; set; }
+        public DateTime LastSeen { get; set; }
+
+        public bool Equals(Apartment other)
+        {
+            return Id == other.Id;
+        }
 
         public override string ToString()
         {

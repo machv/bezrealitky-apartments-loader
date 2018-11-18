@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -54,6 +55,7 @@ namespace BezRealitkyLoader
 
             Console.WriteLine();
 
+            // one-time results
             string rentalsByDistrictJson = JsonConvert.SerializeObject(apartmentsByDistrict, Formatting.Indented);
             string rentalsByDistrictFile = Path.Combine(outputDirectory, "RentalsByDistrict.json");
             File.WriteAllText(rentalsByDistrictFile, rentalsByDistrictJson);
@@ -68,6 +70,38 @@ namespace BezRealitkyLoader
             string rentalsFile = Path.Combine(outputDirectory, "Rentals.csv");
             File.WriteAllText(rentalsFile, rentalsCsv);
             Console.WriteLine("All rentals stored to {0}", rentalsFlatFile);
+
+            // all-time database
+            string allRentalsFile = Path.Combine(outputDirectory, "AllRentals.json");
+            List<Apartment> existingApartments = new List<Apartment>();
+            if (File.Exists(allRentalsFile))
+            {
+                existingApartments = JsonConvert.DeserializeObject<List<Apartment>>(File.ReadAllText(allRentalsFile));
+            }
+
+            int newOccurences = 0;
+            foreach(var apartment in allApartments)
+            {
+                if(existingApartments.Contains(apartment))
+                {
+                    var existingApartment = existingApartments.Where(a => a.Id == apartment.Id).FirstOrDefault();
+                    existingApartment.LastSeen = DateTime.Now;
+                    existingApartment.Status = apartment.Status;
+                }
+                else
+                {
+                    apartment.FirstSeen = DateTime.Now;
+                    apartment.LastSeen = DateTime.Now;
+                    existingApartments.Add(apartment);
+
+                    newOccurences++;
+                }
+            }
+
+            string updatedJsonData = JsonConvert.SerializeObject(existingApartments, Formatting.Indented);
+            File.WriteAllText(allRentalsFile, updatedJsonData);
+
+            Console.WriteLine("All rentals database updated at {0} file with {1} newly added listings.", allRentalsFile, newOccurences);
         }
 
         private static async Task<List<Apartment>> LoadDistrict(string district)
@@ -121,8 +155,15 @@ namespace BezRealitkyLoader
             var ads = document.QuerySelectorAll("article.product");
             foreach (var ad in ads)
             {
-                var apartment = new Apartment();
-                apartment.District = disctrict;
+                var apartment = new Apartment
+                {
+                    Status = Status.Available,
+                    District = disctrict
+                };
+
+                string idAttribute = ad.GetAttribute("id");
+                int id = int.Parse(idAttribute.Substring(idAttribute.IndexOf("-") + 1));
+                apartment.Id = id;
 
                 var detailElement = ad.QuerySelector("h3 strong");
                 string street = detailElement.TextContent.Trim();
@@ -150,6 +191,21 @@ namespace BezRealitkyLoader
 
                 element = ad.QuerySelector("a.product__link");
                 apartment.DetailsLink = element.GetAttribute("href");
+
+                // additional attributes
+                element = ad.QuerySelector("div.product__header span.product__label span.badge");
+                if(element != null)
+                {
+                    switch(element.TextContent)
+                    {
+                        case "Nabídka Premium uživatele":
+                            apartment.IsPremiumOffer = true;
+                            break;
+                        case "Rezervováno":
+                            apartment.Status = Status.Reserved;
+                            break;
+                    }
+                }
 
                 apartments.Add(apartment);
             }
