@@ -17,6 +17,7 @@ namespace BezRealitkyLoader
         public Status Status { get; set; }
         public DateTime FirstSeen { get; set; }
         public DateTime LastSeen { get; set; }
+        public decimal PurchasePrice { get; internal set; }
 
         public bool Equals(Apartment other)
         {
