@@ -18,7 +18,7 @@ namespace BezRealitkyLoader
 
         static void Main(string[] args)
         {
-            string listingType = "prodej"; //or pronajem
+            string listingType = "pronajem"; // prodej or pronajem
             string outputDirectory = ".\\"; // current working directory
             string[] districts = new string[] { "vinohrady", "smichov", "kosire", "strasnice", "nusle", "zizkov", "dejvice", "michle", "malesice", "karlin",
                 "podoli", "vysehrad", "vysocany", "holesovice", "hloubetin", "jinonice", "kobylisy", "krc", "radlice", "stresovice", "vrsovice", "zabehlice" };
@@ -172,7 +172,7 @@ namespace BezRealitkyLoader
                 string street = detailElement.TextContent.Trim();
                 apartment.Address = street;
 
-                string[] metadata = null;
+                string metadata = null;
                 var element = ad.QuerySelector("p.product__note");
                 if (element.TextContent.Contains("Pronájem bytu"))
                 {
@@ -185,7 +185,7 @@ namespace BezRealitkyLoader
                         apartment.Fees = decimal.Parse(prices[1].Replace("Kč", "").Replace(".", "").Trim());
                     }
 
-                    metadata = element.TextContent.Replace("Pronájem bytu ", "").Split(',');
+                    metadata = element.TextContent.Replace("Pronájem bytu ", "");
                 }
                 if (element.TextContent.Contains("Prodej bytu"))
                 {
@@ -198,13 +198,21 @@ namespace BezRealitkyLoader
                     }
                     apartment.PurchasePrice = decimal.Parse(price.Replace("Kč", "").Replace(".", "").Trim());
 
-                    metadata = element.TextContent.Replace("Prodej bytu ", "").Split(',');
+                    metadata = element.TextContent.Replace("Prodej bytu ", "");
                 }
 
-                if (metadata.Length == 2)
+                metadata = metadata.Trim();
+                var match = Regex.Match(metadata, "^([0-9]+) m²$");
+                if (match.Success)
                 {
-                    apartment.Disposition = metadata[0].Trim();
-                    apartment.Area = int.Parse(metadata[1].Replace(" m²", "").Trim());
+                    apartment.Area = int.Parse(match.Groups[1].Value);
+                }
+
+                match = Regex.Match(metadata, "^([^ ]+) (.*) m²$");
+                if(match.Success)
+                {
+                    apartment.Disposition = match.Groups[1].Value;
+                    apartment.Area = int.Parse(match.Groups[2].Value.Replace(" m²", ""));
                 }
 
                 element = ad.QuerySelector("p.product__info-text");
